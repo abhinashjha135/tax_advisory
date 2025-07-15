@@ -6,3 +6,4 @@ requests
 PyPDF2
 pytesseract
 pdf2image 
+python-multipart
