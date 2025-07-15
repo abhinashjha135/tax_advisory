@@ -1,0 +1,30 @@
+/* styles.css for Tax Advisor Landing Page */
+
+body {
+    background: #f8fbff;
+    color: #1a237e;
+}
+
+.start-btn {
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    padding: 1rem 2.5rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(25, 118, 210, 0.08);
+    transition: background 0.2s, transform 0.2s;
+}
+
+.start-btn:hover {
+    background: linear-gradient(90deg, #1565c0 0%, #42a5f5 100%);
+    transform: translateY(-2px) scale(1.03);
+}
+
+@media (max-width: 600px) {
+    h1 { font-size: 2rem; }
+    .container { padding: 1rem; }
+    .start-btn { width: 100%; font-size: 1rem; }
+} 

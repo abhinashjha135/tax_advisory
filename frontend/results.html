@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Comparison Results</title>
+    <link href="https://fonts.googleapis.com/css2?family=Aptos+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body { font-family: 'Aptos Display', Arial, Helvetica, sans-serif; background: linear-gradient(135deg, #e3f0ff 0%, #f8fbff 100%); min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; }
+        .container { background: #fff; border-radius: 24px; box-shadow: 0 8px 32px rgba(25, 118, 210, 0.10), 0 1.5px 6px rgba(21, 101, 192, 0.08); padding: 2.5rem 2rem; max-width: 700px; width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: 1.5rem; color: #1565c0; }
+        .cards { display: flex; gap: 2rem; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap; }
+        .regime-card { background: #f5faff; border-radius: 18px; box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08); padding: 1.5rem 1.2rem; min-width: 260px; flex: 1 1 260px; border: 2px solid transparent; transition: border 0.2s; }
+        .regime-card.selected { border: 2.5px solid #1976d2; background: #e3f0ff; }
+        .regime-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.7rem; color: #1976d2; }
+        .breakdown { text-align: left; margin-top: 1rem; font-size: 0.98rem; }
+        .breakdown span { color: #1976d2; font-weight: 600; }
+        .total { font-size: 1.1rem; font-weight: 700; color: #388e3c; margin-top: 1rem; }
+        .proceed-btn { background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%); color: #fff; border: none; border-radius: 30px; padding: 0.8rem 2rem; font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(25, 118, 210, 0.08); transition: background 0.2s, transform 0.2s; margin-top: 1.5rem; }
+        .proceed-btn:hover { background: linear-gradient(90deg, #1565c0 0%, #42a5f5 100%); transform: translateY(-2px) scale(1.03); }
+        @media (max-width: 800px) { .cards { flex-direction: column; gap: 1.2rem; } .container { padding: 1.5rem 0.5rem; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tax Regime Comparison</h1>
+        <div id="cards" class="cards"></div>
+        <button class="proceed-btn" onclick="window.location.href='advisor.html'">Proceed to AI-Powered Advisor</button>
+    </div>
+    <script>
+        function formatCurrency(val) {
+            return '₹' + (val !== undefined && val !== null ? Number(val).toLocaleString('en-IN', {minimumFractionDigits: 2}) : '0.00');
+        }
+        const results = JSON.parse(localStorage.getItem('taxResults') || '{}');
+        const selected = results.selected_regime;
+        const cardsDiv = document.getElementById('cards');
+        function renderCard(title, data, isSelected) {
+            return `<div class="regime-card${isSelected ? ' selected' : ''}">
+                <div class="regime-title">${title}</div>
+                <div class="breakdown">
+                    <div><span>Gross Salary:</span> ${formatCurrency(data.breakdown.gross_salary)}</div>
+                    <div><span>Deductions:</span> ${formatCurrency(data.breakdown.deductions)}</div>
+                    <div><span>Taxable Income:</span> ${formatCurrency(data.taxable_income)}</div>
+                    <div><span>Tax:</span> ${formatCurrency(data.tax)}</div>
+                    <div><span>Cess (4%):</span> ${formatCurrency(data.cess)}</div>
+                    <div class="total"><span>Total Liability:</span> ${formatCurrency(data.total_liability)}</div>
+                </div>
+            </div>`;
+        }
+        if (results.old_regime && results.new_regime) {
+            cardsDiv.innerHTML =
+                renderCard('Old Regime', results.old_regime, selected === 'old') +
+                renderCard('New Regime', results.new_regime, selected === 'new');
+        } else {
+            cardsDiv.innerHTML = '<div style="color:#d32f2f;">No calculation results found.</div>';
+        }
+    </script>
+</body>
+</html> 

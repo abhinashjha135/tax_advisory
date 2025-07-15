@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Advisor - PDF Upload</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Aptos+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body { font-family: 'Aptos Display', Arial, Helvetica, sans-serif; background: linear-gradient(135deg, #e3f0ff 0%, #f8fbff 100%); min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; }
+        .card { background: #fff; border-radius: 24px; box-shadow: 0 8px 32px rgba(25, 118, 210, 0.10), 0 1.5px 6px rgba(21, 101, 192, 0.08); padding: 2.5rem 2rem; max-width: 420px; width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; animation: fadeIn 1s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .logo { width: 64px; height: 64px; background: linear-gradient(135deg, #1976d2 60%, #64b5f6 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10); }
+        .logo span { color: #fff; font-size: 2rem; font-weight: 700; letter-spacing: 1px; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: #1565c0; }
+        p { font-size: 1.1rem; margin-bottom: 2rem; color: #37474f; }
+        .step { width: 100%; }
+        .file-input { margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; text-align: left; }
+        label { font-weight: 600; color: #1976d2; display: block; margin-bottom: 0.3rem; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #b3c6e0; font-size: 1rem; }
+        .regime-group { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; }
+        .submit-btn, .upload-btn { background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%); color: #fff; border: none; border-radius: 30px; padding: 0.8rem 2rem; font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(25, 118, 210, 0.08); transition: background 0.2s, transform 0.2s; margin-top: 1rem; }
+        .submit-btn:hover, .upload-btn:hover { background: linear-gradient(90deg, #1565c0 0%, #42a5f5 100%); transform: translateY(-2px) scale(1.03); }
+        .error { color: #d32f2f; margin-bottom: 1rem; }
+        .success { color: #388e3c; margin-bottom: 1rem; }
+        @media (max-width: 600px) { .card { padding: 1.5rem 0.5rem; max-width: 98vw; } h1 { font-size: 1.2rem; } .logo { width: 48px; height: 48px; } }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo"><span>TA</span></div>
+        <h1>Tax Advisor</h1>
+        <div id="step-upload" class="step">
+            <p>Upload your Pay Slip or Form 16 (PDF):</p>
+            <form id="uploadForm">
+                <input class="file-input" type="file" id="pdfFile" accept="application/pdf" required />
+                <div id="uploadError" class="error" style="display:none;"></div>
+                <button class="upload-btn" type="submit">Upload PDF</button>
+            </form>
+        </div>
+        <div id="step-review" class="step" style="display:none;">
+            <form id="reviewForm">
+                <div id="reviewFields"></div>
+                <div class="form-group">
+                    <label>Tax Regime:</label>
+                    <div class="regime-group">
+                        <label><input type="radio" name="regime" value="old" required> Old</label>
+                        <label><input type="radio" name="regime" value="new"> New</label>
+                    </div>
+                </div>
+                <button class="submit-btn" type="submit">Submit</button>
+                <div id="reviewError" class="error" style="display:none;"></div>
+                <div id="reviewSuccess" class="success" style="display:none;"></div>
+            </form>
+        </div>
+    </div>
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const pdfFile = document.getElementById('pdfFile');
+        const uploadError = document.getElementById('uploadError');
+        const stepUpload = document.getElementById('step-upload');
+        const stepReview = document.getElementById('step-review');
+        const reviewForm = document.getElementById('reviewForm');
+        const reviewFields = document.getElementById('reviewFields');
+        const reviewError = document.getElementById('reviewError');
+        const reviewSuccess = document.getElementById('reviewSuccess');
+        let sessionId = null;
+        uploadForm.onsubmit = async (e) => {
+            e.preventDefault();
+            uploadError.style.display = 'none';
+            const file = pdfFile.files[0];
+            if (!file) return;
+            if (file.type !== 'application/pdf') {
+                uploadError.textContent = 'Only PDF files are allowed.';
+                uploadError.style.display = 'block';
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                uploadError.textContent = 'File too large (max 5MB).';
+                uploadError.style.display = 'block';
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('http://localhost:8000/api/upload-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!res.ok) throw new Error(await res.text());
+                const data = await res.json();
+                const fields = data.fields || data;
+                sessionId = fields.session_id || data.session_id;
+                showReviewForm(fields);
+            } catch (err) {
+                uploadError.textContent = 'Failed to extract data from PDF.';
+                uploadError.style.display = 'block';
+            }
+        };
+        function showReviewForm(data) {
+            stepUpload.style.display = 'none';
+            stepReview.style.display = 'block';
+            reviewFields.innerHTML = '';
+            const fields = [
+                { name: 'gross_salary', label: 'Gross Salary' },
+                { name: 'basic_salary', label: 'Basic Salary' },
+                { name: 'hra_received', label: 'HRA Received' },
+                { name: 'rent_paid', label: 'Rent Paid' },
+                { name: 'deduction_80c', label: '80C Investments' },
+                { name: 'deduction_80d', label: '80D Medical Insurance' },
+                { name: 'standard_deduction', label: 'Standard Deduction' },
+                { name: 'professional_tax', label: 'Professional Tax' },
+                { name: 'tds', label: 'TDS' }
+            ];
+            fields.forEach(f => {
+                reviewFields.innerHTML += `<div class="form-group"><label for="${f.name}">${f.label}:</label><input type="number" step="0.01" id="${f.name}" name="${f.name}" value="${data[f.name] || ''}"></div>`;
+            });
+        }
+        function generateUUID() {
+            // Simple UUID v4 generator
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        reviewForm.onsubmit = async (e) => {
+            e.preventDefault();
+            reviewError.style.display = 'none';
+            reviewSuccess.style.display = 'none';
+            // Convert empty numeric fields to 0
+            const numericFields = [
+                'gross_salary', 'basic_salary', 'hra_received', 'rent_paid',
+                'deduction_80c', 'deduction_80d', 'standard_deduction',
+                'professional_tax', 'tds'
+            ];
+            numericFields.forEach(name => {
+                const input = reviewForm.elements[name];
+                if (input && input.value.trim() === '') {
+                    input.value = '0';
+                }
+            });
+            if (!sessionId) {
+                sessionId = generateUUID();
+            }
+            const formData = new FormData(reviewForm);
+            formData.append('session_id', sessionId);
+            try {
+                const res = await fetch('http://localhost:8000/api/calculate-tax', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!res.ok) throw new Error(await res.text());
+                const calcResults = await res.json();
+                localStorage.setItem('taxResults', JSON.stringify(calcResults));
+                // No redirect, just show success message
+                reviewSuccess.textContent = 'Data submitted successfully!';
+                reviewSuccess.style.display = 'block';
+            } catch (err) {
+                reviewError.textContent = 'Failed to submit data.';
+                reviewError.style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html> 
